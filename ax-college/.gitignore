@@ -1,0 +1,19 @@
+# Next.js
+/.next/
+/out/
+
+# Production
+/build
+
+# Debug
+*.log
+
+# Env
+.env*
+!.env.example
+
+# TypeScript
+*.tsbuildinfo
+
+# Temp
+~/
