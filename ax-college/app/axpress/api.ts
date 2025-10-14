@@ -1,4 +1,4 @@
-const BASE_URL = "http://127.0.0.1:8000"
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000"
 
 // 논문 도메인 타입 정의
 export type PaperDomain = "금융" | "통신" | "제조" | "유통/물류" | "AI" | "클라우드"
