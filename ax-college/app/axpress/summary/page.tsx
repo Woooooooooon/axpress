@@ -9,11 +9,15 @@ import { PaperProtectedRoute } from "@/components/Axpress/PaperProtectedRoute"
 import { NextPageButton } from "@/components/Axpress/NextPageButton"
 import { MissionNav } from "@/components/Axpress/MissionNav"
 import { LoadingState } from "@/components/ui/LoadingState"
+import { ChatbotFAB } from "@/components/Axpress/ChatbotFAB"
+import { ChatbotDialog } from "@/components/Axpress/ChatbotDialog"
 import { usePaper } from "@/contexts/PaperContext"
+import { useChatbot } from "@/contexts/ChatbotContext"
 import { downloadPaperFile, getSummary, type SummaryResponse } from "@/app/axpress/api"
 
 export default function SummaryPage() {
   const { selectedPaper, markStepComplete } = usePaper()
+  const { createChatbotForPaper } = useChatbot()
   const [isDownloading, setIsDownloading] = useState(false)
   const [summaryData, setSummaryData] = useState<SummaryResponse | null>(null)
   const [isLoadingSummary, setIsLoadingSummary] = useState(false)
@@ -24,6 +28,16 @@ export default function SummaryPage() {
     markStepComplete("summary")
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // 챗봇 생성 (다운로드 시작 시점에 함께 시작)
+  useEffect(() => {
+    if (!selectedPaper?.research_id) return
+
+    // 챗봇 생성 시작 (백그라운드에서 실행)
+    createChatbotForPaper(selectedPaper.research_id).catch((error) => {
+      console.error("[Chatbot] 챗봇 생성 백그라운드 요청 실패:", error)
+    })
+  }, [selectedPaper?.research_id, createChatbotForPaper])
 
   // AI 요약 로드
   useEffect(() => {
@@ -167,6 +181,10 @@ export default function SummaryPage() {
           buttonText="퀴즈 풀러가기"
           tooltipText="퀴즈로 이해도를 확인해보세요!"
         />
+
+        {/* 챗봇 FAB 버튼 및 대화창 */}
+        <ChatbotFAB />
+        <ChatbotDialog />
       </div>
     </PaperProtectedRoute>
   )

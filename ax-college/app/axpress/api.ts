@@ -1,4 +1,5 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000"
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
+
 
 // 논문 도메인 타입 정의
 export type PaperDomain = "금융" | "통신" | "제조" | "유통/물류" | "AI" | "클라우드"
@@ -363,6 +364,111 @@ export async function downloadTTSAudio(audioFile: string, title: string): Promis
     console.log(`[TTS Download] ${audioFile} 다운로드 완료`)
   } catch (error) {
     console.error(`[TTS Download Error] ${audioFile} 다운로드 실패:`, error)
+    throw error
+  }
+}
+
+export interface ChatbotCreateResponse {
+  message: string
+  research_id: number
+  chatbot_status: "created" | "ready"
+}
+
+export interface ChatMessage {
+  role: "user" | "assistant"
+  content: string
+  timestamp: number
+}
+
+export interface ChatbotChatResponse {
+  answer: string
+  research_id: number
+}
+
+export interface ChatbotRefreshResponse {
+  message: string
+  research_id: number
+  status: "refreshed"
+}
+
+/**
+ * 챗봇 생성 API (POST /chatbot/{research_id})
+ * 논문 기반 챗봇을 생성합니다
+ */
+export async function createChatbot(research_id: number): Promise<ChatbotCreateResponse> {
+  try {
+    console.log(`[Chatbot Create] research_id ${research_id} 챗봇 생성 시작`)
+
+    const response = await fetch(`${BASE_URL}/chatbot/${research_id}`, {
+      method: "POST",
+    })
+
+    if (!response.ok) {
+      throw new Error(`챗봇 생성 오류: ${response.status} ${response.statusText}`)
+    }
+
+    const data: ChatbotCreateResponse = await response.json()
+    console.log(`[Chatbot Create] research_id ${research_id} 챗봇 생성 완료`)
+
+    return data
+  } catch (error) {
+    console.error(`[Chatbot Create Error] research_id ${research_id} 챗봇 생성 실패:`, error)
+    throw error
+  }
+}
+
+/**
+ * 챗봇 대화 API (POST /chatbot/chat/{research_id})
+ * 챗봇에게 질문하고 답변을 받습니다
+ */
+export async function sendChatMessage(research_id: number, question: string): Promise<ChatbotChatResponse> {
+  try {
+    console.log(`[Chatbot Chat] research_id ${research_id} 질문 전송:`, question)
+
+    const response = await fetch(`${BASE_URL}/chatbot/chat/${research_id}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ question }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`챗봇 대화 오류: ${response.status} ${response.statusText}`)
+    }
+
+    const data: ChatbotChatResponse = await response.json()
+    console.log(`[Chatbot Chat] research_id ${research_id} 답변 수신 완료`)
+
+    return data
+  } catch (error) {
+    console.error(`[Chatbot Chat Error] research_id ${research_id} 대화 실패:`, error)
+    throw error
+  }
+}
+
+/**
+ * 챗봇 캐시 초기화 API (POST /chatbot/refresh-cache/{research_id})
+ * 새로운 논문 선택 시 이전 챗봇 캐시를 초기화합니다
+ */
+export async function refreshChatbotCache(research_id: number): Promise<ChatbotRefreshResponse> {
+  try {
+    console.log(`[Chatbot Refresh] research_id ${research_id} 캐시 초기화 시작`)
+
+    const response = await fetch(`${BASE_URL}/chatbot/refresh-cache/${research_id}`, {
+      method: "POST",
+    })
+
+    if (!response.ok) {
+      throw new Error(`챗봇 캐시 초기화 오류: ${response.status} ${response.statusText}`)
+    }
+
+    const data: ChatbotRefreshResponse = await response.json()
+    console.log(`[Chatbot Refresh] research_id ${research_id} 캐시 초기화 완료`)
+
+    return data
+  } catch (error) {
+    console.error(`[Chatbot Refresh Error] research_id ${research_id} 캐시 초기화 실패:`, error)
     throw error
   }
 }

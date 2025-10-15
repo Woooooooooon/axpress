@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, type ReactNode } from "react"
+import { createContext, useContext, useState, type ReactNode, useEffect } from "react"
 import type { PaperWithDomain } from "@/app/axpress/api"
 import { downloadPaperPDF } from "@/app/axpress/api"
 
@@ -18,9 +18,33 @@ interface PaperContextType {
 
 const PaperContext = createContext<PaperContextType | undefined>(undefined)
 
+const STORAGE_KEY = "selected_paper"
+
 export function PaperProvider({ children }: { children: ReactNode }) {
-  const [selectedPaper, setSelectedPaper] = useState<PaperWithDomain | null>(null)
+  const [selectedPaper, setSelectedPaper] = useState<PaperWithDomain | null>(() => {
+    // 초기 상태를 localStorage에서 로드
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        try {
+          return JSON.parse(saved)
+        } catch (error) {
+          console.error("[PaperContext] localStorage 파싱 실패:", error)
+        }
+      }
+    }
+    return null
+  })
   const [completedSteps, setCompletedSteps] = useState<Set<MissionStep>>(new Set())
+
+  // selectedPaper 변경 시 localStorage에 저장
+  useEffect(() => {
+    if (selectedPaper) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(selectedPaper))
+    } else {
+      localStorage.removeItem(STORAGE_KEY)
+    }
+  }, [selectedPaper])
 
   const selectPaper = (paper: PaperWithDomain) => {
     // 논문 선택 및 상태 업데이트

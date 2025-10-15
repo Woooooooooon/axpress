@@ -1,25 +1,31 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { usePaper } from "@/contexts/PaperContext"
-import { useAXToast } from "@/hooks/use-toast"
+import { toast } from "@/hooks/use-toast"
 
 export function PaperProtectedRoute({ children }: { children: React.ReactNode }) {
   const { selectedPaper } = usePaper()
   const router = useRouter()
-  const { showToast } = useAXToast()
+  const hasRedirected = useRef(false)
 
   useEffect(() => {
-    if (!selectedPaper) {
-      showToast({
-        title: "논문을 먼저 선택해주세요",
-        description: "메인 페이지에서 논문을 선택한 후 이용하실 수 있습니다.",
-        variant: "default",
+    // 논문이 없고 아직 리다이렉트하지 않았을 때만 실행
+    if (!selectedPaper && !hasRedirected.current) {
+      hasRedirected.current = true
+      toast({
+        title: "논문을 선택하여 학습을 시작해 주세요",
+        className: "ax-toast",
       })
       router.push("/axpress")
     }
-  }, [selectedPaper, router, showToast])
+
+    // 논문이 선택되면 플래그 리셋 (다른 페이지 갔다가 다시 올 때를 위해)
+    if (selectedPaper) {
+      hasRedirected.current = false
+    }
+  }, [selectedPaper, router])
 
   if (!selectedPaper) {
     return null

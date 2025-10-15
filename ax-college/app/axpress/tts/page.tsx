@@ -7,6 +7,8 @@ import { PaperProtectedRoute } from "@/components/Axpress/PaperProtectedRoute"
 import { NextPageButton } from "@/components/Axpress/NextPageButton"
 import { MissionNav } from "@/components/Axpress/MissionNav"
 import { LoadingState } from "@/components/ui/LoadingState"
+import { ChatbotFAB } from "@/components/Axpress/ChatbotFAB"
+import { ChatbotDialog } from "@/components/Axpress/ChatbotDialog"
 import { usePaper } from "@/contexts/PaperContext"
 import { Play, Pause, SkipBack, SkipForward, Volume2, Download } from "lucide-react"
 import { generateTTS, getTTSStreamURL, downloadTTSAudio } from "../api"
@@ -273,6 +275,10 @@ export default function TTSPage() {
           trigger="custom"
           show={isAudioCompleted}
         />
+
+        {/* 챗봇 FAB 버튼 및 대화창 */}
+        <ChatbotFAB />
+        <ChatbotDialog />
       </div>
     </PaperProtectedRoute>
   )
