@@ -6,6 +6,8 @@ import { SelectedPaperBadge } from "@/components/Axpress/SelectedPaperBadge"
 import { PaperProtectedRoute } from "@/components/Axpress/PaperProtectedRoute"
 import { NextPageButton } from "@/components/Axpress/NextPageButton"
 import { MissionNav } from "@/components/Axpress/MissionNav"
+import { ChatbotFAB } from "@/components/Axpress/ChatbotFAB"
+import { ChatbotDialog } from "@/components/Axpress/ChatbotDialog"
 import { usePaper } from "@/contexts/PaperContext"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { getQuiz, type QuizQuestion } from "../api"
@@ -24,22 +26,35 @@ export default function QuizPage() {
   useEffect(() => {
     if (!selectedPaper?.research_id) return
 
+    let cancelled = false
+
     const loadQuiz = async () => {
       try {
         setLoading(true)
         setError(null)
 
         const data = await getQuiz(selectedPaper.research_id)
-        setQuizData(data)
+
+        if (!cancelled) {
+          setQuizData(data)
+        }
       } catch (err) {
-        console.error("퀴즈 로드 실패:", err)
-        setError(err instanceof Error ? err.message : "퀴즈를 불러오는데 실패했습니다.")
+        if (!cancelled) {
+          console.error("퀴즈 로드 실패:", err)
+          setError(err instanceof Error ? err.message : "퀴즈를 불러오는데 실패했습니다.")
+        }
       } finally {
-        setLoading(false)
+        if (!cancelled) {
+          setLoading(false)
+        }
       }
     }
 
     loadQuiz()
+
+    return () => {
+      cancelled = true
+    }
   }, [selectedPaper?.research_id])
 
   // 페이지 방문 시 자동 완료 처리
@@ -314,6 +329,10 @@ export default function QuizPage() {
           trigger="custom"
           show={allAnswered}
         />
+
+        {/* 챗봇 FAB 버튼 및 대화창 */}
+        <ChatbotFAB />
+        <ChatbotDialog />
       </div>
     </PaperProtectedRoute>
   )

@@ -6,6 +6,8 @@ import { SelectedPaperBadge } from "@/components/Axpress/SelectedPaperBadge"
 import { PaperProtectedRoute } from "@/components/Axpress/PaperProtectedRoute"
 import { Calendar, Clock, CheckCircle2, BookOpen, Headphones, Award } from "lucide-react"
 import { MissionNav } from "@/components/Axpress/MissionNav"
+import { ChatbotFAB } from "@/components/Axpress/ChatbotFAB"
+import { ChatbotDialog } from "@/components/Axpress/ChatbotDialog"
 import { usePaper } from "@/contexts/PaperContext"
 
 
@@ -150,6 +152,10 @@ export default function HistoryPage() {
             </div>
           </div>
         </main>
+
+        {/* 챗봇 FAB 버튼 및 대화창 */}
+        <ChatbotFAB />
+        <ChatbotDialog />
       </div>
     </PaperProtectedRoute>
   )

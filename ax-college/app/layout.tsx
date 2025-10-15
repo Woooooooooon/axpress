@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Suspense } from "react"
 import { PaperProvider } from "@/contexts/PaperContext"
+import { ChatbotProvider } from "@/contexts/ChatbotContext"
 import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
 
@@ -21,8 +22,10 @@ export default function RootLayout({
     <html lang="ko" className="antialiased">
       <body className="font-sans">
         <PaperProvider>
-          <Suspense fallback={null}>{children}</Suspense>
-          <Toaster />
+          <ChatbotProvider>
+            <Suspense fallback={null}>{children}</Suspense>
+            <Toaster />
+          </ChatbotProvider>
         </PaperProvider>
       </body>
     </html>
