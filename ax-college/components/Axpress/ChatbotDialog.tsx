@@ -146,7 +146,7 @@ export function ChatbotDialog() {
                   }
                 >
                   {message.role === "assistant" ? (
-                    <div className="prose prose-sm max-w-none prose-headings:text-[var(--ax-fg)] prose-p:text-[var(--ax-fg)] prose-strong:text-[var(--ax-fg)] prose-li:text-[var(--ax-fg)] prose-code:text-[var(--ax-fg)] prose-code:bg-black/10 prose-pre:bg-black/5">
+                    <div className="prose prose-sm max-w-none prose-headings:text-[var(--ax-fg)] prose-p:text-[var(--ax-fg)] prose-strong:text-[var(--ax-fg)] prose-li:text-[var(--ax-fg)] prose-code:text-[var(--ax-fg)] prose-code:bg-black/10 prose-pre:bg-black/5" style={{ fontSize: "0.75em" }}>
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {message.content}
                       </ReactMarkdown>

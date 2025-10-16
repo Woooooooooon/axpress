@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Header } from "@/components/Header/Header"
 import { SelectedPaperBadge } from "@/components/Axpress/SelectedPaperBadge"
 import { PaperProtectedRoute } from "@/components/Axpress/PaperProtectedRoute"
@@ -22,39 +22,46 @@ export default function QuizPage() {
   const [userAnswers, setUserAnswers] = useState<Record<number, "O" | "X">>({})
   const [showExplanations, setShowExplanations] = useState<Record<number, boolean>>({})
 
+  // API 중복 호출 방지를 위한 ref
+  const hasLoadedQuiz = useRef(false)
+  const currentResearchId = useRef<number | null>(null)
+
   // 퀴즈 데이터 로드
   useEffect(() => {
     if (!selectedPaper?.research_id) return
 
-    let cancelled = false
+    // 이미 같은 논문의 퀴즈를 로드했으면 스킵
+    if (hasLoadedQuiz.current && currentResearchId.current === selectedPaper.research_id) {
+      console.log(`[Quiz] research_id ${selectedPaper.research_id} 이미 로드됨, API 호출 스킵`)
+      return
+    }
+
+    // 다른 논문으로 변경된 경우 초기화
+    if (currentResearchId.current !== selectedPaper.research_id) {
+      hasLoadedQuiz.current = false
+      currentResearchId.current = selectedPaper.research_id
+    }
 
     const loadQuiz = async () => {
       try {
         setLoading(true)
         setError(null)
 
+        console.log(`[Quiz API] research_id ${selectedPaper.research_id} 퀴즈 생성 시작`)
         const data = await getQuiz(selectedPaper.research_id)
+        console.log(`[Quiz API] research_id ${selectedPaper.research_id} 퀴즈 생성 완료: ${data.length}개`)
 
-        if (!cancelled) {
-          setQuizData(data)
-        }
+        setQuizData(data)
+        hasLoadedQuiz.current = true
       } catch (err) {
-        if (!cancelled) {
-          console.error("퀴즈 로드 실패:", err)
-          setError(err instanceof Error ? err.message : "퀴즈를 불러오는데 실패했습니다.")
-        }
+        console.error("퀴즈 로드 실패:", err)
+        setError(err instanceof Error ? err.message : "퀴즈를 불러오는데 실패했습니다.")
       } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
+        setLoading(false)
       }
     }
 
     loadQuiz()
-
-    return () => {
-      cancelled = true
-    }
   }, [selectedPaper?.research_id])
 
   // 페이지 방문 시 자동 완료 처리

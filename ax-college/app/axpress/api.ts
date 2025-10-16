@@ -554,7 +554,7 @@ export function getVideoDownloadURL(research_id: number): string {
 export async function downloadVideo(research_id: number, isFirstDownload: boolean = false): Promise<void> {
   try {
     const url = isFirstDownload
-      ? getVideoStreamURL(research_id)
+      ? getVideoStreamURL(109)
       : getVideoDownloadURL(research_id)
 
     console.log(`[Video Download] research_id ${research_id} 다운로드 시작 (${isFirstDownload ? 'stream' : 'download'})`)
