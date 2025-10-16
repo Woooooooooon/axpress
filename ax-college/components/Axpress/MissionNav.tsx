@@ -1,14 +1,14 @@
 "use client"
 
 import { usePathname, useRouter } from "next/navigation"
-import { FileText, Brain, Headphones, History, Sparkles, CheckCircle2, Circle } from "lucide-react"
+import { FileText, Brain, Headphones, History, Sparkles, CheckCircle2, Circle, Video } from "lucide-react"
 import { usePaper } from "@/contexts/PaperContext"
 
 interface MissionStep {
   id: string
   title: string
   path: string
-  icon: React.ComponentType<{ className?: string }>
+  icon: React.ComponentType<any>
   description: string
 }
 
@@ -35,11 +35,11 @@ const MISSION_STEPS: MissionStep[] = [
     description: "음성으로 다시 듣기",
   },
   {
-    id: "history",
-    title: "학습 이력",
-    path: "/axpress/history",
-    icon: History,
-    description: "학습 기록 확인",
+    id: "video",
+    title: "동영상 강의",
+    path: "/axpress/video",
+    icon: Video,
+    description: "동영상 강의 시청",
   },
 ]
 
@@ -71,7 +71,7 @@ export function MissionNav() {
   }
 
   return (
-    <div className="fixed top-40 left-4 z-40">
+    <div className="fixed top-40 left-4 z-40 scale-75 origin-top-left">
       {/* 미션 카드 */}
       <div className="bg-white/20 backdrop-blur-sm rounded-2xl border-2 border-[var(--ax-accent)]/20 p-4 w-64">
         {/* 헤더 */}

@@ -73,7 +73,7 @@ export const NAV_DATA: NavItem[] = [
       { label: "논문 요약", path: "/axpress/summary", description: "선택한 논문의 요약 확인" },
       { label: "퀴즈", path: "/axpress/quiz", description: "논문 이해도 퀴즈" },
       { label: "팟캐스트", path: "/axpress/tts", description: "논문 음성 듣기" },
-      { label: "학습 이력", path: "/axpress/history", description: "학습 기록 관리" },
+      { label: "동영상 강의", path: "/axpress/video", description: "동영상 강의 시청" },
     ],
   },
 ]

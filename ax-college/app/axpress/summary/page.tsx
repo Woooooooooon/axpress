@@ -102,7 +102,7 @@ export default function SummaryPage() {
       <div className="min-h-screen bg-gradient-to-br from-[var(--ax-bg-soft)] to-white">
         <Header />
         <MissionNav />
-        <main className="mx-auto max-w-5xl px-4 py-8 md:px-6 lg:px-8">
+        <main className="ax-scaled-content mx-auto max-w-5xl px-4 py-8 md:px-6 lg:px-8 scale-[0.75] origin-top  ">
           <SelectedPaperBadge />
 
           <div className="space-y-6">

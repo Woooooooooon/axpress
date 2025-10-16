@@ -90,7 +90,7 @@ export function ChatbotDialog() {
 
   return (
     <div
-      className="fixed bottom-6 right-6 z-50 w-[30rem] max-w-[calc(100vw-3rem)] h-[50rem] max-h-[calc(100vh-10rem)] ax-card overflow-hidden flex flex-col shadow-sm transition-opacity duration-500"
+      className="fixed bottom-6 right-6 z-50 w-[22.5rem] max-w-[calc(100vw-3rem)] h-[50rem] max-h-[calc(100vh-10rem)] ax-card overflow-hidden flex flex-col shadow-sm transition-opacity duration-500"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -107,14 +107,14 @@ export function ChatbotDialog() {
             aria-label="대화 내역 삭제"
             title="대화 내역 삭제"
           >
-            <Trash2 className="h-6 w-6 text-[var(--ax-fg)]" />
+            <Trash2 className="h-5 w-5 text-[var(--ax-fg)]" />
           </button>
           <button
             onClick={toggleChat}
             className="p-2.5 rounded-lg hover:bg-black/10 transition-colors"
             aria-label="닫기"
           >
-            <X className="h-7 w-7 text-[var(--ax-fg)]" />
+            <X className="h-6 w-6 text-[var(--ax-fg)]" />
           </button>
         </div>
       </div>
@@ -123,8 +123,8 @@ export function ChatbotDialog() {
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
           <div className="text-center text-[var(--ax-fg)]/60 py-8">
-            <p className="text-lg">논문 정보를 기반으로 학습된 챗봇입니다!</p>
-            <p className="text-md mt-2">예: 이 논문의 Attention Mechanism은 무엇인가요?</p>
+            <p className="text-base">논문 정보를 기반으로 학습된 챗봇입니다!</p>
+            <p className="text-sm mt-2">예: 이 논문의 Attention Mechanism은 무엇인가요?</p>
           </div>
         ) : (
           <>
@@ -146,7 +146,7 @@ export function ChatbotDialog() {
                   }
                 >
                   {message.role === "assistant" ? (
-                    <div className="prose prose-sm max-w-none prose-headings:text-[var(--ax-fg)] prose-p:text-[var(--ax-fg)] prose-strong:text-[var(--ax-fg)] prose-li:text-[var(--ax-fg)] prose-code:text-[var(--ax-fg)] prose-code:bg-black/10 prose-pre:bg-black/5">
+                    <div className="prose prose-sm max-w-none prose-headings:text-[var(--ax-fg)] prose-p:text-[var(--ax-fg)] prose-strong:text-[var(--ax-fg)] prose-li:text-[var(--ax-fg)] prose-code:text-[var(--ax-fg)] prose-code:bg-black/10 prose-pre:bg-black/5" style={{ fontSize: "0.75em" }}>
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {message.content}
                       </ReactMarkdown>

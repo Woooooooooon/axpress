@@ -292,7 +292,7 @@ export interface TTSResponse {
   summary: string
   explainer: string
   tts_id: string
-  audio_file: string
+  research_id: number
   download_url: string
   stream_url: string
 }
@@ -304,7 +304,7 @@ export async function generateTTS(research_id: number): Promise<TTSResponse> {
   try {
     console.log(`[TTS API] research_id ${research_id} TTS 생성 요청 시작`)
 
-    const response = await fetch(`${BASE_URL}/tts/from-s3`, {
+    const response = await fetch(`${BASE_URL}/tts/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -331,18 +331,18 @@ export async function generateTTS(research_id: number): Promise<TTSResponse> {
 /**
  * TTS 오디오 스트리밍 URL 가져오기
  */
-export function getTTSStreamURL(audioFile: string): string {
-  return `${BASE_URL}/tts/${encodeURIComponent(audioFile)}/stream`
+export function getTTSStreamURL(research_id: number): string {
+  return `${BASE_URL}/tts/stream/${research_id}`
 }
 
 /**
  * TTS 오디오 다운로드
  */
-export async function downloadTTSAudio(audioFile: string, title: string): Promise<void> {
+export async function downloadTTSAudio(research_id: number): Promise<void> {
   try {
-    console.log(`[TTS Download] ${audioFile} 다운로드 시작`)
+    console.log(`[TTS Download] ${research_id} 다운로드 시작`)
 
-    const response = await fetch(`${BASE_URL}/tts/${encodeURIComponent(audioFile)}/download`, {
+    const response = await fetch(`${BASE_URL}/tts/stream/${research_id}`, {
       method: "GET",
     })
 
@@ -355,15 +355,15 @@ export async function downloadTTSAudio(audioFile: string, title: string): Promis
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `${title}_explainer.mp3`
+    a.download = `${research_id}_explainer.mp3`
     document.body.appendChild(a)
     a.click()
     window.URL.revokeObjectURL(url)
     document.body.removeChild(a)
 
-    console.log(`[TTS Download] ${audioFile} 다운로드 완료`)
+    console.log(`[TTS Download] ${research_id} 다운로드 완료`)
   } catch (error) {
-    console.error(`[TTS Download Error] ${audioFile} 다운로드 실패:`, error)
+    console.error(`[TTS Download Error] ${research_id} 다운로드 실패:`, error)
     throw error
   }
 }
@@ -469,6 +469,118 @@ export async function refreshChatbotCache(research_id: number): Promise<ChatbotR
     return data
   } catch (error) {
     console.error(`[Chatbot Refresh Error] research_id ${research_id} 캐시 초기화 실패:`, error)
+    throw error
+  }
+}
+
+// ============== VIDEO API ==============
+
+export type TTSMode = "standard" | "premium"
+
+export interface VideoGenerateRequest {
+  research_id: number
+  tts_mode: TTSMode
+}
+
+export interface VideoGenerateResponse {
+  message: string
+  research_id: number
+  video_status: "created" | "generating" | "ready"
+  stream_url?: string
+}
+
+/**
+ * 동영상 생성 API (POST /video)
+ * @param research_id 논문 ID
+ * @param tts_mode TTS 모드 (standard | premium)
+ * @param force_regenerate 기존 동영상 재생성 여부
+ */
+export async function generateVideo(
+  research_id: number,
+  tts_mode: TTSMode = "standard",
+  force_regenerate: boolean = false
+): Promise<VideoGenerateResponse> {
+  try {
+    console.log(`[Video Generate] research_id ${research_id} 동영상 생성 시작 (force_regenerate: ${force_regenerate})`)
+
+    const url = `${BASE_URL}/video${force_regenerate ? "?force_regenerate=true" : ""}`
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        research_id: 109, //시연 용으로 고정
+        tts_mode,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`동영상 생성 오류: ${response.status} ${response.statusText}`)
+    }
+
+    const data: VideoGenerateResponse = await response.json()
+    console.log(`[Video Generate] research_id ${research_id} 동영상 생성 완료`)
+
+    return data
+  } catch (error) {
+    console.error(`[Video Generate Error] research_id ${research_id} 동영상 생성 실패:`, error)
+    throw error
+  }
+}
+
+/**
+ * 동영상 스트리밍 URL 가져오기 (첫 다운로드)
+ * GET /video/stream/{research_id}
+ */
+export function getVideoStreamURL(research_id: number): string {
+  return `${BASE_URL}/video/stream/109` //시연 용으로 고정
+}
+
+/**
+ * 동영상 다운로드 URL 가져오기 (재다운로드)
+ * GET /video/{research_id}
+ */
+export function getVideoDownloadURL(research_id: number): string {
+  return `${BASE_URL}/video/109` //시연 용으로 고정
+}
+
+/**
+ * 동영상 다운로드 (파일로 저장)
+ * @param research_id 논문 ID
+ * @param isFirstDownload 첫 다운로드 여부 (true: stream, false: download)
+ */
+export async function downloadVideo(research_id: number, isFirstDownload: boolean = false): Promise<void> {
+  try {
+    const url = isFirstDownload
+      ? getVideoStreamURL(109)
+      : getVideoDownloadURL(research_id)
+
+    console.log(`[Video Download] research_id ${research_id} 다운로드 시작 (${isFirstDownload ? 'stream' : 'download'})`)
+
+    const response = await fetch(url, {
+      method: "GET",
+    })
+
+    if (!response.ok) {
+      throw new Error(`동영상 다운로드 오류: ${response.status} ${response.statusText}`)
+    }
+
+    // Blob으로 받아서 다운로드 처리
+    const blob = await response.blob()
+    const downloadUrl = window.URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = downloadUrl
+    a.download = `research_${research_id}_lecture.mp4`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(downloadUrl)
+    document.body.removeChild(a)
+
+    console.log(`[Video Download] research_id ${research_id} 다운로드 완료`)
+  } catch (error) {
+    console.error(`[Video Download Error] research_id ${research_id} 다운로드 실패:`, error)
     throw error
   }
 }
