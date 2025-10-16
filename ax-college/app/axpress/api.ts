@@ -292,7 +292,7 @@ export interface TTSResponse {
   summary: string
   explainer: string
   tts_id: string
-  audio_file: string
+  research_id: number
   download_url: string
   stream_url: string
 }
@@ -304,7 +304,7 @@ export async function generateTTS(research_id: number): Promise<TTSResponse> {
   try {
     console.log(`[TTS API] research_id ${research_id} TTS 생성 요청 시작`)
 
-    const response = await fetch(`${BASE_URL}/tts/from-s3`, {
+    const response = await fetch(`${BASE_URL}/tts/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -331,18 +331,18 @@ export async function generateTTS(research_id: number): Promise<TTSResponse> {
 /**
  * TTS 오디오 스트리밍 URL 가져오기
  */
-export function getTTSStreamURL(audioFile: string): string {
-  return `${BASE_URL}/tts/${encodeURIComponent(audioFile)}/stream`
+export function getTTSStreamURL(research_id: number): string {
+  return `${BASE_URL}/tts/stream/${research_id}`
 }
 
 /**
  * TTS 오디오 다운로드
  */
-export async function downloadTTSAudio(audioFile: string, title: string): Promise<void> {
+export async function downloadTTSAudio(research_id: number): Promise<void> {
   try {
-    console.log(`[TTS Download] ${audioFile} 다운로드 시작`)
+    console.log(`[TTS Download] ${research_id} 다운로드 시작`)
 
-    const response = await fetch(`${BASE_URL}/tts/${encodeURIComponent(audioFile)}/download`, {
+    const response = await fetch(`${BASE_URL}/tts/stream/${research_id}`, {
       method: "GET",
     })
 
@@ -355,15 +355,15 @@ export async function downloadTTSAudio(audioFile: string, title: string): Promis
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `${title}_explainer.mp3`
+    a.download = `${research_id}_explainer.mp3`
     document.body.appendChild(a)
     a.click()
     window.URL.revokeObjectURL(url)
     document.body.removeChild(a)
 
-    console.log(`[TTS Download] ${audioFile} 다운로드 완료`)
+    console.log(`[TTS Download] ${research_id} 다운로드 완료`)
   } catch (error) {
-    console.error(`[TTS Download Error] ${audioFile} 다운로드 실패:`, error)
+    console.error(`[TTS Download Error] ${research_id} 다운로드 실패:`, error)
     throw error
   }
 }

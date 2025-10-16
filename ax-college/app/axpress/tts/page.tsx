@@ -133,7 +133,7 @@ export default function TTSPage() {
     if (!ttsData || !selectedPaper) return
 
     try {
-      await downloadTTSAudio(ttsData.audio_file, selectedPaper.title)
+      await downloadTTSAudio(ttsData.research_id)
     } catch (err) {
       console.error("[TTS Download] 다운로드 실패:", err)
       alert("오디오 다운로드에 실패했습니다.")
@@ -168,7 +168,7 @@ export default function TTSPage() {
             {ttsData && !isLoading && (
               <>
                 {/* 숨겨진 오디오 엘리먼트 */}
-                <audio ref={audioRef} src={getTTSStreamURL(ttsData.audio_file)} preload="metadata" />
+                <audio ref={audioRef} src={getTTSStreamURL(ttsData.research_id)} preload="metadata" />
 
                 <div className="ax-card p-8 md:p-12">
                   <div className="space-y-8">
