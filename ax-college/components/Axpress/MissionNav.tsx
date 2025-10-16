@@ -71,7 +71,7 @@ export function MissionNav() {
   }
 
   return (
-    <div className="fixed top-40 left-4 z-40">
+    <div className="fixed top-40 left-4 z-40 scale-75 origin-top-left">
       {/* 미션 카드 */}
       <div className="bg-white/20 backdrop-blur-sm rounded-2xl border-2 border-[var(--ax-accent)]/20 p-4 w-64">
         {/* 헤더 */}

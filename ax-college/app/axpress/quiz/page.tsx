@@ -96,7 +96,7 @@ export default function QuizPage() {
         <div className="min-h-screen bg-gradient-to-br from-[var(--ax-bg-soft)] to-white">
           <Header />
           <MissionNav />
-          <main className="mx-auto max-w-5xl px-4 py-8 md:px-6 lg:px-8">
+          <main className="ax-scaled-content mx-auto max-w-5xl px-4 py-8 md:px-6 lg:px-8 scale-[0.75] origin-top">
             <SelectedPaperBadge />
             <LoadingState message="퀴즈를 불러오는 중..." />
           </main>
@@ -111,7 +111,7 @@ export default function QuizPage() {
         <div className="min-h-screen bg-gradient-to-br from-[var(--ax-bg-soft)] to-white">
           <Header />
           <MissionNav />
-          <main className="mx-auto max-w-5xl px-4 py-8 md:px-6 lg:px-8">
+          <main className="ax-scaled-content mx-auto max-w-5xl px-4 py-8 md:px-6 lg:px-8 scale-[0.75] origin-top">
             <SelectedPaperBadge />
             <div className="ax-card p-8 text-center">
               <p className="text-red-600 mb-4">{error}</p>
@@ -131,7 +131,7 @@ export default function QuizPage() {
         <div className="min-h-screen bg-gradient-to-br from-[var(--ax-bg-soft)] to-white">
           <Header />
           <MissionNav />
-          <main className="mx-auto max-w-5xl px-4 py-8 md:px-6 lg:px-8">
+          <main className="ax-scaled-content mx-auto max-w-5xl px-4 py-8 md:px-6 lg:px-8 scale-[0.75] origin-top">
             <SelectedPaperBadge />
             <div className="ax-card p-8 text-center">
               <p className="text-[var(--ax-fg)]/70">퀴즈 데이터가 없습니다.</p>
@@ -147,7 +147,7 @@ export default function QuizPage() {
       <div className="min-h-screen bg-gradient-to-br from-[var(--ax-bg-soft)] to-white">
         <Header />
         <MissionNav />
-        <main className="mx-auto max-w-5xl px-4 py-8 md:px-6 lg:px-8">
+        <main className="ax-scaled-content mx-auto max-w-5xl px-4 py-8 md:px-6 lg:px-8 scale-[0.75] origin-top">
           <SelectedPaperBadge />
 
           <div className="space-y-6">
