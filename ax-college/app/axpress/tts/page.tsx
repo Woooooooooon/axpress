@@ -145,7 +145,7 @@ export default function TTSPage() {
       <div className="min-h-screen bg-gradient-to-br from-[var(--ax-bg-soft)] to-white">
         <Header />
         <MissionNav />
-        <main className="mx-auto max-w-5xl px-4 py-8 md:px-6 lg:px-8">
+        <main className="ax-scaled-content mx-auto max-w-5xl px-4 py-8 md:px-6 lg:px-8 scale-[0.75] origin-top">
           <SelectedPaperBadge />
 
           <div className="space-y-6">
@@ -269,9 +269,9 @@ export default function TTSPage() {
 
         {/* 다음 페이지로 이동 버튼 - 오디오 재생 완료 시 표시 */}
         <NextPageButton
-          nextPath="/axpress/history"
-          buttonText="학습 기록 보러가기"
-          tooltipText="학습 기록을 확인해보세요!"
+          nextPath="/axpress/video"
+          buttonText="동영상 강의 보러가기"
+          tooltipText="AI로 맞춤 제작된 동영상 강의를 확인해보세요!"
           trigger="custom"
           show={isAudioCompleted}
         />
