@@ -584,3 +584,103 @@ export async function downloadVideo(research_id: number, isFirstDownload: boolea
     throw error
   }
 }
+
+// ============== KEYWORD EXTRACTION API ==============
+
+export interface KeywordExtractionResponse {
+  keywords: Record<string, string> // { "한글 키워드": "English keyword" }
+}
+
+/**
+ * PDF에서 키워드 추출 (POST /keyword/extract/pdf)
+ * @param file PDF 파일
+ */
+export async function extractKeywordsFromPDF(file: File): Promise<KeywordExtractionResponse> {
+  try {
+    console.log(`[Keyword Extract PDF] 파일 업로드 시작:`, file.name)
+
+    const formData = new FormData()
+    formData.append("file", file)
+
+    const response = await fetch(`${BASE_URL}/keyword/extract/pdf`, {
+      method: "POST",
+      body: formData,
+    })
+
+    if (!response.ok) {
+      throw new Error(`키워드 추출 오류: ${response.status} ${response.statusText}`)
+    }
+
+    const data: KeywordExtractionResponse = await response.json()
+    console.log(`[Keyword Extract PDF] 키워드 추출 완료:`, data.keywords)
+
+    return data
+  } catch (error) {
+    console.error(`[Keyword Extract PDF Error] 키워드 추출 실패:`, error)
+    throw error
+  }
+}
+
+/**
+ * 텍스트에서 키워드 추출 (POST /keyword/extract/text)
+ * @param text 검색할 텍스트
+ */
+export async function extractKeywordsFromText(text: string): Promise<KeywordExtractionResponse> {
+  try {
+    console.log(`[Keyword Extract Text] 텍스트 키워드 추출 시작:`, text.substring(0, 100))
+
+    const response = await fetch(`${BASE_URL}/keyword/extract/text`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ text }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`키워드 추출 오류: ${response.status} ${response.statusText}`)
+    }
+
+    const data: KeywordExtractionResponse = await response.json()
+    console.log(`[Keyword Extract Text] 키워드 추출 완료:`, data.keywords)
+
+    return data
+  } catch (error) {
+    console.error(`[Keyword Extract Text Error] 키워드 추출 실패:`, error)
+    throw error
+  }
+}
+
+/**
+ * 키워드로 논문 검색 (POST /research/search/keyword)
+ * @param keyword 검색할 키워드 (영어)
+ */
+export async function fetchPapersByKeyword(keyword: string): Promise<PaperWithDomain[]> {
+  try {
+    console.log(`[Keyword Search] 키워드로 논문 검색 시작:`, keyword)
+
+    const response = await fetch(`${BASE_URL}/research/search/keyword`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ keyword }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`키워드 검색 오류: ${response.status} ${response.statusText}`)
+    }
+
+    const data: ResearchSearchResponse = await response.json()
+
+    // API 응답을 화면용 타입으로 변환 (domain은 "AI"로 임시 설정)
+    const papers = data.data.map((apiPaper) => transformApiResponseToPaper(apiPaper, "AI"))
+
+    console.log(`[Keyword Search] 키워드 "${keyword}" 논문 ${papers.length}개 검색 완료`)
+
+    return papers
+  } catch (error) {
+    console.error(`[Keyword Search Error] 키워드 "${keyword}" 검색 실패:`, error)
+    throw error
+  }
+}

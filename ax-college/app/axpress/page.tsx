@@ -1,13 +1,20 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Header } from "@/components/Header/Header"
 import { usePaper } from "@/contexts/PaperContext"
 import { PaperCarousel } from "@/components/Axpress/PaperCarousel"
 import { PaperListView } from "@/components/Axpress/PaperListView"
 import { SelectedPaperBadge } from "@/components/Axpress/SelectedPaperBadge"
-import { LayoutGrid, List } from "lucide-react"
-import { fetchPapersByDomain, type PaperWithDomain, type PaperDomain } from "./api"
+import { LayoutGrid, List, Search, Upload, X } from "lucide-react"
+import {
+  fetchPapersByDomain,
+  fetchPapersByKeyword,
+  extractKeywordsFromPDF,
+  extractKeywordsFromText,
+  type PaperWithDomain,
+  type PaperDomain
+} from "./api"
 
 const DOMAINS: PaperDomain[] = ["금융", "통신", "제조", "유통/물류", "AI", "클라우드"]
 const VIDEO_CACHE_PREFIX = "video_generated_"
@@ -20,6 +27,15 @@ export default function AXpressPage() {
   const [currentPapers, setCurrentPapers] = useState<PaperWithDomain[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // 키워드 검색 관련 상태
+  const [searchMode, setSearchMode] = useState<"domain" | "keyword">("domain")
+  const [searchText, setSearchText] = useState("")
+  const [extractedKeywords, setExtractedKeywords] = useState<Record<string, string>>({})
+  const [selectedKeyword, setSelectedKeyword] = useState<string | null>(null)
+  const [isExtracting, setIsExtracting] = useState(false)
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 메인 페이지 마운트 시 캐시 초기화
   useEffect(() => {
@@ -42,15 +58,20 @@ export default function AXpressPage() {
     }
   }, [])
 
-  // 도메인이 변경될 때마다 논문 데이터 로드
+  // 도메인 또는 키워드가 변경될 때마다 논문 데이터 로드
   useEffect(() => {
     const loadPapers = async () => {
       setIsLoading(true)
       setError(null)
 
       try {
-        const papers = await fetchPapersByDomain(selectedDomain)
-        setCurrentPapers(papers)
+        if (searchMode === "domain") {
+          const papers = await fetchPapersByDomain(selectedDomain)
+          setCurrentPapers(papers)
+        } else if (searchMode === "keyword" && selectedKeyword) {
+          const papers = await fetchPapersByKeyword(selectedKeyword)
+          setCurrentPapers(papers)
+        }
       } catch (err) {
         console.error("논문 로드 실패:", err)
         setError("논문을 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.")
@@ -61,7 +82,84 @@ export default function AXpressPage() {
     }
 
     loadPapers()
-  }, [selectedDomain])
+  }, [selectedDomain, searchMode, selectedKeyword])
+
+  // 텍스트 검색 핸들러
+  const handleTextSearch = async () => {
+    if (!searchText.trim()) return
+
+    setIsExtracting(true)
+    setError(null)
+
+    try {
+      const result = await extractKeywordsFromText(searchText)
+      setExtractedKeywords(result.keywords)
+      setSearchMode("keyword")
+
+      // 첫 번째 키워드를 자동 선택
+      const firstKeyword = Object.values(result.keywords)[0]
+      if (firstKeyword) {
+        setSelectedKeyword(firstKeyword)
+      }
+    } catch (err) {
+      console.error("키워드 추출 실패:", err)
+      setError("키워드 추출에 실패했습니다. 다시 시도해주세요.")
+    } finally {
+      setIsExtracting(false)
+    }
+  }
+
+  // PDF 업로드 핸들러
+  const handlePDFUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (file.type !== "application/pdf") {
+      setError("PDF 파일만 업로드 가능합니다.")
+      return
+    }
+
+    setIsExtracting(true)
+    setError(null)
+    setUploadedFileName(file.name)
+
+    try {
+      const result = await extractKeywordsFromPDF(file)
+      setExtractedKeywords(result.keywords)
+      setSearchMode("keyword")
+
+      // 첫 번째 키워드를 자동 선택
+      const firstKeyword = Object.values(result.keywords)[0]
+      if (firstKeyword) {
+        setSelectedKeyword(firstKeyword)
+      }
+    } catch (err) {
+      console.error("키워드 추출 실패:", err)
+      setError("키워드 추출에 실패했습니다. 다시 시도해주세요.")
+      setUploadedFileName(null)
+    } finally {
+      setIsExtracting(false)
+      // 파일 input 초기화 (하지만 파일명은 유지)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+    }
+  }
+
+  // 키워드 선택 핸들러
+  const handleKeywordSelect = (keyword: string) => {
+    setSelectedKeyword(keyword)
+    setSearchMode("keyword")
+  }
+
+  // 도메인 모드로 돌아가기
+  const handleBackToDomain = () => {
+    setSearchMode("domain")
+    setExtractedKeywords({})
+    setSelectedKeyword(null)
+    setSearchText("")
+    setUploadedFileName(null)
+  }
 
   const handlePaperSelect = async (paper: PaperWithDomain) => {
     try {
@@ -133,11 +231,14 @@ export default function AXpressPage() {
           <h1 className="text-4xl md:text-5xl font-bold text-[var(--ax-fg)] mb-5">
             AXpress 논문 탐색
           </h1>
+
           {selectedPaper ? (
             <SelectedPaperBadge />
           ) : (
             <p className="text-lg text-[var(--ax-fg)]/70 mb-4 animate-pulse">
-              도메인별 최신 논문을 탐색하고 학습하세요
+              {searchMode === "keyword" && selectedKeyword
+                ? `"${selectedKeyword}" 관련 논문을 탐색 중입니다`
+                : "도메인별 최신 논문을 탐색하고 학습하세요"}
             </p>
           )}
         </div>
@@ -170,22 +271,118 @@ export default function AXpressPage() {
           </div>
         </div>
 
-        {/* Domain Tabs */}
+        {/* Domain Tabs 또는 Keyword Search */}
         <div className="mb-8">
-          <div className="flex items-center justify-center gap-2 flex-wrap">
-            {DOMAINS.map((domain) => (
+          {searchMode === "domain" ? (
+            // 도메인 탭
+            <div className="flex items-center justify-center gap-2 flex-wrap">
+              {DOMAINS.map((domain) => (
+                <button
+                  key={domain}
+                  onClick={() => setSelectedDomain(domain)}
+                  className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${
+                    selectedDomain === domain
+                      ? "bg-[var(--ax-accent)] text-white shadow-md"
+                      : "bg-white text-[var(--ax-fg)] hover:bg-gray-50 border border-gray-200"
+                  }`}
+                >
+                  {domain}
+                </button>
+              ))}
+            </div>
+          ) : (
+            // 키워드 검색 모드
+            <div className="max-w-4xl mx-auto">
+              {/* 업로드된 파일명 표시 */}
+              {uploadedFileName && (
+                <div className="mb-4 flex items-center justify-center gap-2 text-sm text-[var(--ax-fg)]/70">
+                  <Upload className="w-4 h-4" />
+                  <span>업로드된 파일: {uploadedFileName}</span>
+                </div>
+              )}
+
+              {/* 추출된 키워드 표시 */}
+              {Object.keys(extractedKeywords).length > 0 && (
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-[var(--ax-fg)]">추출된 키워드</h3>
+                    <button
+                      onClick={handleBackToDomain}
+                      className="text-sm text-[var(--ax-fg)]/60 hover:text-[var(--ax-fg)] flex items-center gap-1"
+                    >
+                      <X className="w-4 h-4" />
+                      도메인으로 돌아가기
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {Object.entries(extractedKeywords).map(([korean, english]) => (
+                      <button
+                        key={english}
+                        onClick={() => handleKeywordSelect(english)}
+                        className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${
+                          selectedKeyword === english
+                            ? "bg-[var(--ax-accent)] text-white shadow-md"
+                            : "bg-white text-[var(--ax-fg)] hover:bg-gray-50 border border-gray-200"
+                        }`}
+                      >
+                        <div>{korean}</div>
+                        <div className="text-xs opacity-70">{english}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 검색 및 PDF 업로드 섹션 - 항상 표시 */}
+          <div className="max-w-3xl mx-auto mt-6">
+            <div className="flex gap-2">
+              {/* 텍스트 검색 */}
+              <div className="flex-1 relative">
+                <input
+                  type="text"
+                  placeholder="검색어를 입력하세요 (예: AI adoption, productivity)"
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleTextSearch()}
+                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ax-accent)] focus:border-transparent"
+                  disabled={isExtracting}
+                />
+                <button
+                  onClick={handleTextSearch}
+                  disabled={!searchText.trim() || isExtracting}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-[var(--ax-accent)] hover:bg-[var(--ax-accent)]/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Search className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* PDF 업로드 */}
               <button
-                key={domain}
-                onClick={() => setSelectedDomain(domain)}
-                className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${
-                  selectedDomain === domain
-                    ? "bg-[var(--ax-accent)] text-white shadow-md"
-                    : "bg-white text-[var(--ax-fg)] hover:bg-gray-50 border border-gray-200"
-                }`}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isExtracting}
+                className="px-6 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {domain}
+                <Upload className="w-5 h-5" />
+                <span className="font-medium">PDF 업로드</span>
               </button>
-            ))}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf"
+                onChange={handlePDFUpload}
+                className="hidden"
+              />
+            </div>
+
+            {/* 키워드 추출 중 표시 */}
+            {isExtracting && (
+              <div className="flex items-center justify-center gap-2 text-[var(--ax-accent)] mt-4">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--ax-accent)]"></div>
+                <span>키워드 추출 중...</span>
+              </div>
+            )}
           </div>
         </div>
 

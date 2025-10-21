@@ -98,7 +98,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                       </button>
                     ) : (
                       <Link
-                        href={item.path}
+                        href={item.key === "axpress" ? item.path : "/not-found"}
                         onClick={handleLinkClick}
                         className={cn(
                           "ax-focus-ring block rounded-lg px-3 py-2 text-sm font-medium transition-colors",
@@ -117,7 +117,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                         {item.children?.map((child) => (
                           <Link
                             key={child.path}
-                            href={child.path}
+                            href={child.path.startsWith("/axpress") ? child.path : "/not-found"}
                             onClick={handleLinkClick}
                             className={cn(
                               "ax-focus-ring block rounded-lg px-3 py-2 text-sm transition-colors",
