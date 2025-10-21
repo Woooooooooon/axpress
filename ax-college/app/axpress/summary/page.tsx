@@ -112,10 +112,10 @@ export default function SummaryPage() {
             </div>
 
             {/* Summary Content */}
-            <div className="ax-card p-6 md:p-8 space-y-6">
+            <div className="ax-card p-6 space-y-6">
               <div>
                 <h2 className="text-xl font-semibold text-[var(--ax-fg)] mb-4">Abstract</h2>
-                <p className="text-[var(--ax-fg)]/80 leading-relaxed whitespace-pre-line">
+                <p className="text-[var(--ax-fg)]/80 leading-relaxed ">
                   {selectedPaper?.abstract}
                 </p>
               </div>

@@ -6,7 +6,7 @@ import { usePaper } from "@/contexts/PaperContext"
 import { PaperCarousel } from "@/components/Axpress/PaperCarousel"
 import { PaperListView } from "@/components/Axpress/PaperListView"
 import { SelectedPaperBadge } from "@/components/Axpress/SelectedPaperBadge"
-import { LayoutGrid, List, Search, Upload, X } from "lucide-react"
+import { LayoutGrid, List, Search, Upload, Redo2 } from "lucide-react"
 import {
   fetchPapersByDomain,
   fetchPapersByKeyword,
@@ -19,6 +19,7 @@ import {
 const DOMAINS: PaperDomain[] = ["금융", "통신", "제조", "유통/물류", "AI", "클라우드"]
 const VIDEO_CACHE_PREFIX = "video_generated_"
 const DOWNLOAD_CACHE_PREFIX = "paper_downloaded_"
+const KEYWORD_SEARCH_CACHE_KEY = "keyword_search_data"
 
 export default function AXpressPage() {
   const { selectedPaper, selectPaper, isDownloading, downloadError } = usePaper()
@@ -37,12 +38,31 @@ export default function AXpressPage() {
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // 메인 페이지 마운트 시 캐시 초기화
+  // 메인 페이지 마운트 시 캐시 초기화 및 키워드 검색 복원
   useEffect(() => {
+    // 키워드 검색 데이터 복원
+    const savedKeywordData = localStorage.getItem(KEYWORD_SEARCH_CACHE_KEY)
+    if (savedKeywordData) {
+      try {
+        const { keywords, selectedKeyword: savedSelectedKeyword, fileName } = JSON.parse(savedKeywordData)
+        setExtractedKeywords(keywords)
+        setSelectedKeyword(savedSelectedKeyword)
+        setSearchMode("keyword")
+        if (fileName) {
+          setUploadedFileName(fileName)
+        }
+        console.log(`[Keyword Cache] 키워드 검색 데이터 복원 완료`)
+      } catch (error) {
+        console.error("[Keyword Cache] 키워드 검색 데이터 파싱 실패:", error)
+        localStorage.removeItem(KEYWORD_SEARCH_CACHE_KEY)
+      }
+    }
+
+    // 동영상 캐시와 다운로드 캐시만 삭제 (키워드 검색 캐시는 유지)
     const keysToRemove: string[] = []
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
-      // 동영상 캐시와 다운로드 캐시 모두 삭제
+      // 동영상 캐시와 다운로드 캐시만 삭제 (키워드 검색 캐시는 제외)
       if (key && (key.startsWith(VIDEO_CACHE_PREFIX) || key.startsWith(DOWNLOAD_CACHE_PREFIX))) {
         keysToRemove.push(key)
       }
@@ -100,6 +120,14 @@ export default function AXpressPage() {
       const firstKeyword = Object.values(result.keywords)[0]
       if (firstKeyword) {
         setSelectedKeyword(firstKeyword)
+
+        // 키워드 검색 데이터를 localStorage에 저장
+        localStorage.setItem(KEYWORD_SEARCH_CACHE_KEY, JSON.stringify({
+          keywords: result.keywords,
+          selectedKeyword: firstKeyword,
+          fileName: null
+        }))
+        console.log(`[Keyword Cache] 텍스트 검색 결과 저장 완료`)
       }
     } catch (err) {
       console.error("키워드 추출 실패:", err)
@@ -132,6 +160,14 @@ export default function AXpressPage() {
       const firstKeyword = Object.values(result.keywords)[0]
       if (firstKeyword) {
         setSelectedKeyword(firstKeyword)
+
+        // 키워드 검색 데이터를 localStorage에 저장 (파일명 포함)
+        localStorage.setItem(KEYWORD_SEARCH_CACHE_KEY, JSON.stringify({
+          keywords: result.keywords,
+          selectedKeyword: firstKeyword,
+          fileName: file.name
+        }))
+        console.log(`[Keyword Cache] PDF 검색 결과 저장 완료`)
       }
     } catch (err) {
       console.error("키워드 추출 실패:", err)
@@ -150,6 +186,21 @@ export default function AXpressPage() {
   const handleKeywordSelect = (keyword: string) => {
     setSelectedKeyword(keyword)
     setSearchMode("keyword")
+
+    // 선택된 키워드 업데이트하여 localStorage에 저장
+    const savedData = localStorage.getItem(KEYWORD_SEARCH_CACHE_KEY)
+    if (savedData) {
+      try {
+        const data = JSON.parse(savedData)
+        localStorage.setItem(KEYWORD_SEARCH_CACHE_KEY, JSON.stringify({
+          ...data,
+          selectedKeyword: keyword
+        }))
+        console.log(`[Keyword Cache] 선택된 키워드 업데이트: ${keyword}`)
+      } catch (error) {
+        console.error("[Keyword Cache] 키워드 업데이트 실패:", error)
+      }
+    }
   }
 
   // 도메인 모드로 돌아가기
@@ -159,6 +210,10 @@ export default function AXpressPage() {
     setSelectedKeyword(null)
     setSearchText("")
     setUploadedFileName(null)
+
+    // 키워드 검색 캐시 삭제
+    localStorage.removeItem(KEYWORD_SEARCH_CACHE_KEY)
+    console.log(`[Keyword Cache] 키워드 검색 캐시 삭제됨`)
   }
 
   const handlePaperSelect = async (paper: PaperWithDomain) => {
@@ -292,44 +347,46 @@ export default function AXpressPage() {
             </div>
           ) : (
             // 키워드 검색 모드
-            <div className="max-w-4xl mx-auto">
+            <div>
+              {/* 추출된 키워드 제목과 뒤로가기 버튼 */}
+              {Object.keys(extractedKeywords).length > 0 && (
+                <div className="relative mb-4">
+                  <h2 className="text-xl font-bold text-[var(--ax-fg)] text-center">추출된 키워드</h2>
+                  <button
+                    onClick={handleBackToDomain}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[var(--ax-fg)]/60 hover:text-[var(--ax-fg)] flex items-center gap-1 transition-colors"
+                  >
+                    <Redo2 className="w-4 h-4" />
+                    기본 도메인으로 돌아가기
+                  </button>
+                </div>
+              )}
+
               {/* 업로드된 파일명 표시 */}
               {uploadedFileName && (
-                <div className="mb-4 flex items-center justify-center gap-2 text-sm text-[var(--ax-fg)]/70">
+                <div className="flex items-center justify-center gap-2 text-sm text-[var(--ax-fg)]/70 mb-3">
                   <Upload className="w-4 h-4" />
                   <span>업로드된 파일: {uploadedFileName}</span>
                 </div>
               )}
 
-              {/* 추출된 키워드 표시 */}
+              {/* 키워드 탭 - 도메인 탭과 동일한 스타일 */}
               {Object.keys(extractedKeywords).length > 0 && (
-                <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold text-[var(--ax-fg)]">추출된 키워드</h3>
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  {Object.entries(extractedKeywords).map(([korean, english]) => (
                     <button
-                      onClick={handleBackToDomain}
-                      className="text-sm text-[var(--ax-fg)]/60 hover:text-[var(--ax-fg)] flex items-center gap-1"
+                      key={english}
+                      onClick={() => handleKeywordSelect(english)}
+                      className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${
+                        selectedKeyword === english
+                          ? "bg-[var(--ax-accent)] text-white shadow-md"
+                          : "bg-white text-[var(--ax-fg)] hover:bg-gray-50 border border-gray-200"
+                      }`}
                     >
-                      <X className="w-4 h-4" />
-                      도메인으로 돌아가기
+                      <div>{korean}</div>
+                      <div className="text-xs opacity-70">{english}</div>
                     </button>
-                  </div>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {Object.entries(extractedKeywords).map(([korean, english]) => (
-                      <button
-                        key={english}
-                        onClick={() => handleKeywordSelect(english)}
-                        className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${
-                          selectedKeyword === english
-                            ? "bg-[var(--ax-accent)] text-white shadow-md"
-                            : "bg-white text-[var(--ax-fg)] hover:bg-gray-50 border border-gray-200"
-                        }`}
-                      >
-                        <div>{korean}</div>
-                        <div className="text-xs opacity-70">{english}</div>
-                      </button>
-                    ))}
-                  </div>
+                  ))}
                 </div>
               )}
             </div>
