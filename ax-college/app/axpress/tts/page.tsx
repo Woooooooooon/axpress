@@ -20,6 +20,8 @@ export default function TTSPage() {
   const [duration, setDuration] = useState(0)
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0)
   const [isSeeking, setIsSeeking] = useState(false)
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false)
   const wasPlayingRef = useRef(false)
   const audioRef = useRef<HTMLAudioElement>(null)
   const transcriptRef = useRef<HTMLDivElement>(null)
@@ -66,6 +68,34 @@ export default function TTSPage() {
   )
   const activeLineIndex = currentLineIndex >= 0 ? currentLineIndex : transcriptLines.length - 1
 
+  // 오디오 파일 미리 다운로드
+  useEffect(() => {
+    if (!ttsData) return
+
+    const loadAudio = async () => {
+      setIsLoadingAudio(true)
+      try {
+        const response = await fetch(getTTSStreamURL(ttsData.research_id))
+        const blob = await response.blob()
+        const url = URL.createObjectURL(blob)
+        setAudioUrl(url)
+      } catch (error) {
+        console.error("[TTS] 오디오 로드 실패:", error)
+      } finally {
+        setIsLoadingAudio(false)
+      }
+    }
+
+    loadAudio()
+
+    // cleanup: blob URL 해제
+    return () => {
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl)
+      }
+    }
+  }, [ttsData])
+
   // 페이지 방문 시 자동 완료 처리
   useEffect(() => {
     markStepComplete("tts")
@@ -85,14 +115,18 @@ export default function TTSPage() {
   // 오디오 메타데이터 로드 시 duration 설정
   useEffect(() => {
     const audio = audioRef.current
-    if (!audio || !ttsData) return
+    if (!audio || !audioUrl) return
 
     const handleLoadedMetadata = () => {
+      console.log("[TTS] Audio loaded, duration:", audio.duration)
       setDuration(audio.duration)
     }
 
     const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime)
+      // seeking 중이 아닐 때만 currentTime 업데이트
+      if (!isSeeking) {
+        setCurrentTime(audio.currentTime)
+      }
     }
 
     const handleEnded = () => {
@@ -100,16 +134,22 @@ export default function TTSPage() {
       setCurrentTime(audio.duration)
     }
 
+    const handleCanPlay = () => {
+      console.log("[TTS] Audio can play, seekable:", audio.seekable.length > 0)
+    }
+
     audio.addEventListener("loadedmetadata", handleLoadedMetadata)
     audio.addEventListener("timeupdate", handleTimeUpdate)
     audio.addEventListener("ended", handleEnded)
+    audio.addEventListener("canplay", handleCanPlay)
 
     return () => {
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata)
       audio.removeEventListener("timeupdate", handleTimeUpdate)
       audio.removeEventListener("ended", handleEnded)
+      audio.removeEventListener("canplay", handleCanPlay)
     }
-  }, [ttsData])
+  }, [audioUrl, isSeeking])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -166,14 +206,23 @@ export default function TTSPage() {
     const audio = audioRef.current
     if (!audio) return
 
+    console.log("[TTS] Seeking to:", currentTime)
+
     // 실제 오디오 위치를 currentTime으로 변경
-    audio.currentTime = currentTime
+    try {
+      audio.currentTime = currentTime
+      console.log("[TTS] Seek successful, new position:", audio.currentTime)
+    } catch (error) {
+      console.error("[TTS] Seek failed:", error)
+    }
 
     setIsSeeking(false)
 
     // 드래그 전에 재생 중이었으면 다시 재생
     if (wasPlayingRef.current) {
-      audio.play()
+      audio.play().catch((err) => {
+        console.error("[TTS] Play failed after seek:", err)
+      })
       setIsPlaying(true)
       wasPlayingRef.current = false
     }
@@ -234,11 +283,18 @@ export default function TTSPage() {
               </div>
             )}
 
+            {/* 오디오 로딩 중 */}
+            {isLoadingAudio && (
+              <div className="ax-card p-6">
+                <LoadingState message="오디오 파일을 불러오는 중..." />
+              </div>
+            )}
+
             {/* Audio Player */}
-            {ttsData && !ttsState.isLoading && (
+            {ttsData && !ttsState.isLoading && audioUrl && (
               <>
                 {/* 숨겨진 오디오 엘리먼트 */}
-                <audio ref={audioRef} src={getTTSStreamURL(ttsData.research_id)} preload="metadata" />
+                <audio ref={audioRef} src={audioUrl} preload="auto" />
 
                 <div className="ax-card p-8 md:p-6">
                   <div className="space-y-8">
