@@ -10,10 +10,8 @@ import { LoadingState } from "@/components/ui/LoadingState"
 import { ChatbotFAB } from "@/components/Axpress/ChatbotFAB"
 import { ChatbotDialog } from "@/components/Axpress/ChatbotDialog"
 import { usePaper } from "@/contexts/PaperContext"
-import { Play, Pause, SkipBack, SkipForward, Volume2, Download } from "lucide-react"
+import { Play, Pause, SkipBack, SkipForward, Download } from "lucide-react"
 import { getTTSStreamURL, downloadTTSAudio } from "../api"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
 
 export default function TTSPage() {
   const { selectedPaper, markStepComplete, ttsData, ttsState } = usePaper()
@@ -21,16 +19,68 @@ export default function TTSPage() {
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0)
+  const [isSeeking, setIsSeeking] = useState(false)
+  const wasPlayingRef = useRef(false)
   const audioRef = useRef<HTMLAudioElement>(null)
+  const transcriptRef = useRef<HTMLDivElement>(null)
 
   // 오디오가 끝까지 재생되었는지 확인
   const isAudioCompleted = duration > 0 && currentTime >= duration - 1
+
+  // 트랜스크립트를 문장으로 분리하고 타이밍 계산
+  const getTranscriptLines = () => {
+    if (!ttsData?.explainer) return []
+
+    // 마크다운 제거하고 문장 단위로 분리
+    const text = ttsData.explainer
+      .replace(/[#*`]/g, '') // 마크다운 제거
+      .replace(/\n+/g, ' ') // 줄바꿈 제거
+      .trim()
+
+    // 문장 단위로 분리 (., !, ? 기준)
+    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text]
+
+    // 전체 텍스트 길이 대비 각 문장의 시작 시간 계산
+    let totalLength = 0
+    const lines = sentences.map((sentence, index) => {
+      const startTime = duration > 0 ? (totalLength / text.length) * duration : 0
+      totalLength += sentence.length
+      const endTime = duration > 0 ? (totalLength / text.length) * duration : 0
+
+      return {
+        text: sentence.trim(),
+        startTime,
+        endTime,
+        index
+      }
+    })
+
+    return lines
+  }
+
+  const transcriptLines = getTranscriptLines()
+
+  // 현재 재생 중인 라인 찾기
+  const currentLineIndex = transcriptLines.findIndex(
+    line => currentTime >= line.startTime && currentTime < line.endTime
+  )
+  const activeLineIndex = currentLineIndex >= 0 ? currentLineIndex : transcriptLines.length - 1
 
   // 페이지 방문 시 자동 완료 처리
   useEffect(() => {
     markStepComplete("tts")
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // 현재 재생 중인 라인으로 스크롤 (seeking 중이 아닐 때만)
+  useEffect(() => {
+    if (!isSeeking && transcriptRef.current && activeLineIndex >= 0) {
+      const activeElement = transcriptRef.current.querySelector(`[data-line-index="${activeLineIndex}"]`)
+      if (activeElement) {
+        activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }
+  }, [activeLineIndex, isSeeking])
 
   // 오디오 메타데이터 로드 시 duration 설정
   useEffect(() => {
@@ -86,13 +136,47 @@ export default function TTSPage() {
     audio.currentTime = Math.max(0, Math.min(audio.currentTime + seconds, duration))
   }
 
-  const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 프로그레스 바 드래그 시작
+  const handleSeekStart = () => {
     const audio = audioRef.current
     if (!audio) return
 
-    const newTime = Number.parseInt(e.target.value)
-    audio.currentTime = newTime
+    // 현재 재생 상태 저장
+    wasPlayingRef.current = isPlaying
+
+    // 재생 중이면 일시정지
+    if (isPlaying) {
+      audio.pause()
+      setIsPlaying(false)
+    }
+
+    setIsSeeking(true)
+  }
+
+  // 프로그레스 바 값 변경 (드래그 중)
+  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = parseFloat(e.target.value)
+
+    // seeking 중에는 currentTime만 업데이트 (UI 미리보기용)
     setCurrentTime(newTime)
+  }
+
+  // 프로그레스 바 드래그 종료
+  const handleSeekEnd = () => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    // 실제 오디오 위치를 currentTime으로 변경
+    audio.currentTime = currentTime
+
+    setIsSeeking(false)
+
+    // 드래그 전에 재생 중이었으면 다시 재생
+    if (wasPlayingRef.current) {
+      audio.play()
+      setIsPlaying(true)
+      wasPlayingRef.current = false
+    }
   }
 
   const handleSpeedChange = (speed: number) => {
@@ -114,6 +198,18 @@ export default function TTSPage() {
     }
   }
 
+  const handleLineClick = (startTime: number) => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    audio.currentTime = startTime
+    setCurrentTime(startTime)
+    if (!isPlaying) {
+      audio.play()
+      setIsPlaying(true)
+    }
+  }
+
   return (
     <PaperProtectedRoute>
       <div className="min-h-screen bg-gradient-to-br from-[var(--ax-bg-soft)] to-white">
@@ -123,7 +219,7 @@ export default function TTSPage() {
           <SelectedPaperBadge />
 
           <div className="space-y-6">
-            <div className="text-center mb-8">
+            <div className="text-center mb-4">
               <h1 className="text-3xl font-bold text-[var(--ax-fg)] mb-2">논문 팟캐스트</h1>
               <p className="text-[var(--ax-fg)]/70">논문 내용을 음성으로 들어보세요</p>
             </div>
@@ -144,24 +240,52 @@ export default function TTSPage() {
                 {/* 숨겨진 오디오 엘리먼트 */}
                 <audio ref={audioRef} src={getTTSStreamURL(ttsData.research_id)} preload="metadata" />
 
-                <div className="ax-card p-8 md:p-12">
+                <div className="ax-card p-8 md:p-6">
                   <div className="space-y-8">
-                    {/* Podcast Cover */}
-                    <div className="flex justify-center">
-                      <div className="w-64 h-64 bg-gradient-to-br from-[var(--ax-accent)] to-purple-600 rounded-2xl shadow-lg flex items-center justify-center">
-                        <Volume2 className="w-24 h-24 text-white" />
-                      </div>
-                    </div>
-
+                        {/* Scrolling Transcript Section */}
+                        
+                          <div
+                            ref={transcriptRef}
+                            className="bg-[var(--ax-bg-soft)] rounded-lg p-6 max-h-96 overflow-y-auto"
+                          >
+                            <div className="space-y-3">
+                              {transcriptLines.map((line, index) => {
+                                const isActive = index === activeLineIndex
+                                return (
+                                  <p
+                                    key={index}
+                                    data-line-index={index}
+                                    onClick={() => handleLineClick(line.startTime)}
+                                    className={`transition-all duration-300 cursor-pointer hover:text-[var(--ax-accent)] ${
+                                      isActive
+                                        ? "text-2xl font-semibold text-[var(--ax-accent)] leading-relaxed"
+                                        : "text-sm text-[var(--ax-fg)]/60 leading-normal"
+                                    }`}
+                                  >
+                                    {line.text}
+                                  </p>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        
                     {/* Progress Bar */}
                     <div className="space-y-2">
                       <input
                         type="range"
                         min="0"
                         max={duration || 0}
+                        step="0.1"
                         value={currentTime}
-                        onChange={handleProgressChange}
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[var(--ax-accent)]"
+                        onChange={handleSeekChange}
+                        onMouseDown={handleSeekStart}
+                        onMouseUp={handleSeekEnd}
+                        onTouchStart={handleSeekStart}
+                        onTouchEnd={handleSeekEnd}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[var(--ax-accent)] hover:h-3 transition-all"
+                        style={{
+                          background: `linear-gradient(to right, var(--ax-accent) 0%, var(--ax-accent) ${(currentTime / duration) * 100}%, #e5e7eb ${(currentTime / duration) * 100}%, #e5e7eb 100%)`
+                        }}
                       />
                       <div className="flex justify-between text-sm text-[var(--ax-fg)]/60">
                         <span>{formatTime(currentTime)}</span>
@@ -205,14 +329,14 @@ export default function TTSPage() {
                       <div className="flex gap-2">
                         {[0.75, 1.0, 1.25, 1.5, 2.0].map((speed) => (
                           <button
-                            key={speed}
-                            onClick={() => handleSpeedChange(speed)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          key={speed}
+                          onClick={() => handleSpeedChange(speed)}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                               playbackSpeed === speed
-                                ? "bg-[var(--ax-accent)] text-white"
-                                : "hover:bg-gray-100 text-[var(--ax-fg)]"
-                            }`}
-                          >
+                              ? "bg-[var(--ax-accent)] text-white"
+                              : "hover:bg-gray-100 text-[var(--ax-fg)]"
+                              }`}
+                              >
                             {speed}x
                           </button>
                         ))}
@@ -229,18 +353,11 @@ export default function TTSPage() {
                   </div>
                 </div>
 
-                {/* Transcript Section */}
-                <div className="ax-card p-6">
-                  <h2 className="text-xl font-semibold text-[var(--ax-fg)] mb-4">스크립트</h2>
-                  <div className="bg-[var(--ax-bg-soft)] rounded-lg p-6 max-h-96 overflow-y-auto prose prose-sm max-w-none">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{ttsData.explainer}</ReactMarkdown>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </main>
 
+                      </>
+                    )}
+                  </div>
+                </main>
         {/* 다음 페이지로 이동 버튼 - 오디오 재생 완료 시 표시 */}
         <NextPageButton
           nextPath="/axpress/video"
