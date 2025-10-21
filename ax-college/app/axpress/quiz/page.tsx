@@ -10,59 +10,13 @@ import { ChatbotFAB } from "@/components/Axpress/ChatbotFAB"
 import { ChatbotDialog } from "@/components/Axpress/ChatbotDialog"
 import { usePaper } from "@/contexts/PaperContext"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { getQuiz, type QuizQuestion } from "../api"
 import { LoadingState } from "@/components/ui/LoadingState"
 
 export default function QuizPage() {
-  const { selectedPaper, markStepComplete } = usePaper()
-  const [quizData, setQuizData] = useState<QuizQuestion[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { selectedPaper, markStepComplete, quizData, quizState } = usePaper()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [userAnswers, setUserAnswers] = useState<Record<number, "O" | "X">>({})
   const [showExplanations, setShowExplanations] = useState<Record<number, boolean>>({})
-
-  // API 중복 호출 방지를 위한 ref
-  const hasLoadedQuiz = useRef(false)
-  const currentResearchId = useRef<number | null>(null)
-
-  // 퀴즈 데이터 로드
-  useEffect(() => {
-    if (!selectedPaper?.research_id) return
-
-    // 이미 같은 논문의 퀴즈를 로드했으면 스킵
-    if (hasLoadedQuiz.current && currentResearchId.current === selectedPaper.research_id) {
-      console.log(`[Quiz] research_id ${selectedPaper.research_id} 이미 로드됨, API 호출 스킵`)
-      return
-    }
-
-    // 다른 논문으로 변경된 경우 초기화
-    if (currentResearchId.current !== selectedPaper.research_id) {
-      hasLoadedQuiz.current = false
-      currentResearchId.current = selectedPaper.research_id
-    }
-
-    const loadQuiz = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-
-        console.log(`[Quiz API] research_id ${selectedPaper.research_id} 퀴즈 생성 시작`)
-        const data = await getQuiz(selectedPaper.research_id)
-        console.log(`[Quiz API] research_id ${selectedPaper.research_id} 퀴즈 생성 완료: ${data.length}개`)
-
-        setQuizData(data)
-        hasLoadedQuiz.current = true
-      } catch (err) {
-        console.error("퀴즈 로드 실패:", err)
-        setError(err instanceof Error ? err.message : "퀴즈를 불러오는데 실패했습니다.")
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadQuiz()
-  }, [selectedPaper?.research_id])
 
   // 페이지 방문 시 자동 완료 처리
   useEffect(() => {
@@ -84,20 +38,20 @@ export default function QuizPage() {
   }
 
   const handleNext = () => {
-    if (currentIndex < quizData.length - 1) {
+    if (quizData && currentIndex < quizData.length - 1) {
       setCurrentIndex(currentIndex + 1)
     }
   }
 
-  const allAnswered = quizData.length > 0 && Object.keys(userAnswers).length === quizData.length
+  const allAnswered = quizData && quizData.length > 0 && Object.keys(userAnswers).length === quizData.length
 
-  const currentQuiz = quizData[currentIndex]
+  const currentQuiz = quizData?.[currentIndex]
   const isCorrect =
     currentQuiz && showExplanations[currentIndex]
       ? userAnswers[currentIndex] === currentQuiz.answer
       : null
 
-  if (loading) {
+  if (quizState.isLoading) {
     return (
       <PaperProtectedRoute>
         <div className="min-h-screen bg-gradient-to-br from-[var(--ax-bg-soft)] to-white">
@@ -112,7 +66,7 @@ export default function QuizPage() {
     )
   }
 
-  if (error) {
+  if (quizState.error) {
     return (
       <PaperProtectedRoute>
         <div className="min-h-screen bg-gradient-to-br from-[var(--ax-bg-soft)] to-white">
@@ -121,7 +75,7 @@ export default function QuizPage() {
           <main className="ax-scaled-content mx-auto max-w-5xl px-4 py-8 md:px-6 lg:px-8 scale-[0.75] origin-top">
             <SelectedPaperBadge />
             <div className="ax-card p-8 text-center">
-              <p className="text-red-600 mb-4">{error}</p>
+              <p className="text-red-600 mb-4">{quizState.error}</p>
               <button onClick={() => window.location.reload()} className="ax-button-primary">
                 다시 시도
               </button>
@@ -166,14 +120,14 @@ export default function QuizPage() {
 
             {/* 인디케이터 */}
             <div className="flex justify-center items-center gap-2 mb-4">
-              {quizData.map((_, idx) => (
+              {quizData?.map((_, idx) => (
                 <div
                   key={idx}
                   className={`h-2 rounded-full transition-all ${
                     idx === currentIndex
                       ? "w-8 bg-[var(--ax-accent)]"
                       : showExplanations[idx]
-                        ? userAnswers[idx] === quizData[idx].answer
+                        ? userAnswers[idx] === quizData?.[idx].answer
                           ? "w-2 bg-green-500"
                           : "w-2 bg-red-500"
                         : "w-2 bg-gray-300"
@@ -185,7 +139,7 @@ export default function QuizPage() {
             {/* 퀴즈 카드 */}
             <div className="relative">
               {/* 카드 스택 효과 (뒤에 살짝 보이는 카드들) */}
-              {currentIndex < quizData.length - 1 && (
+              {quizData && currentIndex < quizData.length - 1 && (
                 <div className="absolute inset-0 ax-card opacity-20 translate-y-2 translate-x-2" />
               )}
               {currentIndex > 0 && (
@@ -200,7 +154,7 @@ export default function QuizPage() {
                     Q{currentIndex + 1}
                   </span>
                   <span className="text-lg text-[var(--ax-fg)]/50 ml-2">
-                    / {quizData.length}
+                    / {quizData?.length || 0}
                   </span>
                 </div>
 
@@ -292,13 +246,13 @@ export default function QuizPage() {
 
                   <div className="text-center">
                     <p className="text-sm text-[var(--ax-fg)]/60">
-                      {Object.keys(userAnswers).length} / {quizData.length} 완료
+                      {Object.keys(userAnswers).length} / {quizData?.length || 0} 완료
                     </p>
                   </div>
 
                   <button
                     onClick={handleNext}
-                    disabled={currentIndex === quizData.length - 1}
+                    disabled={!quizData || currentIndex === quizData.length - 1}
                     className="ax-button-primary px-6 py-3 flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     다음
@@ -318,10 +272,10 @@ export default function QuizPage() {
                   정답:{" "}
                   {
                     Object.entries(userAnswers).filter(
-                      ([idx, answer]) => answer === quizData[Number(idx)].answer
+                      ([idx, answer]) => quizData && answer === quizData[Number(idx)].answer
                     ).length
                   }{" "}
-                  / {quizData.length}
+                  / {quizData?.length || 0}
                 </p>
               </div>
             )}

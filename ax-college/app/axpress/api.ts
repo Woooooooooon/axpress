@@ -511,7 +511,7 @@ export async function generateVideo(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        research_id: 109, //시연 용으로 고정
+        research_id: research_id, //시연 용으로 고정
         tts_mode,
       }),
     })
@@ -535,7 +535,7 @@ export async function generateVideo(
  * GET /video/stream/{research_id}
  */
 export function getVideoStreamURL(research_id: number): string {
-  return `${BASE_URL}/video/stream/109` //시연 용으로 고정
+  return `${BASE_URL}/video/stream/${research_id}` //시연 용으로 고정
 }
 
 /**
@@ -543,7 +543,7 @@ export function getVideoStreamURL(research_id: number): string {
  * GET /video/{research_id}
  */
 export function getVideoDownloadURL(research_id: number): string {
-  return `${BASE_URL}/video/109` //시연 용으로 고정
+  return `${BASE_URL}/video/${research_id}` //시연 용으로 고정
 }
 
 /**
@@ -554,7 +554,7 @@ export function getVideoDownloadURL(research_id: number): string {
 export async function downloadVideo(research_id: number, isFirstDownload: boolean = false): Promise<void> {
   try {
     const url = isFirstDownload
-      ? getVideoStreamURL(109)
+      ? getVideoStreamURL(research_id)
       : getVideoDownloadURL(research_id)
 
     console.log(`[Video Download] research_id ${research_id} 다운로드 시작 (${isFirstDownload ? 'stream' : 'download'})`)

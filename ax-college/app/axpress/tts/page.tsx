@@ -11,20 +11,16 @@ import { ChatbotFAB } from "@/components/Axpress/ChatbotFAB"
 import { ChatbotDialog } from "@/components/Axpress/ChatbotDialog"
 import { usePaper } from "@/contexts/PaperContext"
 import { Play, Pause, SkipBack, SkipForward, Volume2, Download } from "lucide-react"
-import { generateTTS, getTTSStreamURL, downloadTTSAudio } from "../api"
-import type { TTSResponse } from "../api"
+import { getTTSStreamURL, downloadTTSAudio } from "../api"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 
 export default function TTSPage() {
-  const { selectedPaper, markStepComplete } = usePaper()
+  const { selectedPaper, markStepComplete, ttsData, ttsState } = usePaper()
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0)
-  const [ttsData, setTtsData] = useState<TTSResponse | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
 
   // 오디오가 끝까지 재생되었는지 확인
@@ -35,28 +31,6 @@ export default function TTSPage() {
     markStepComplete("tts")
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  // TTS 데이터 로드
-  useEffect(() => {
-    const loadTTS = async () => {
-      if (!selectedPaper?.research_id) return
-
-      setIsLoading(true)
-      setError(null)
-      try {
-        console.log("[TTS Page] TTS 생성 API 호출")
-        const data = await generateTTS(selectedPaper.research_id)
-        setTtsData(data)
-      } catch (err) {
-        console.error("[TTS Page] TTS 로드 실패:", err)
-        setError(err instanceof Error ? err.message : "TTS 생성에 실패했습니다.")
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadTTS()
-  }, [selectedPaper?.research_id])
 
   // 오디오 메타데이터 로드 시 duration 설정
   useEffect(() => {
@@ -155,17 +129,17 @@ export default function TTSPage() {
             </div>
 
             {/* 로딩 상태 */}
-            {isLoading && <LoadingState message="TTS를 생성하고 있습니다. 잠시만 기다려주세요..." />}
+            {ttsState.isLoading && <LoadingState message="TTS를 생성하고 있습니다. 잠시만 기다려주세요..." />}
 
             {/* 에러 상태 */}
-            {error && (
+            {ttsState.error && (
               <div className="ax-card p-6 bg-red-50 border border-red-200">
-                <p className="text-red-600 text-center">{error}</p>
+                <p className="text-red-600 text-center">{ttsState.error}</p>
               </div>
             )}
 
             {/* Audio Player */}
-            {ttsData && !isLoading && (
+            {ttsData && !ttsState.isLoading && (
               <>
                 {/* 숨겨진 오디오 엘리먼트 */}
                 <audio ref={audioRef} src={getTTSStreamURL(ttsData.research_id)} preload="metadata" />

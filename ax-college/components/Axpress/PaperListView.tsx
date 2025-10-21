@@ -21,7 +21,6 @@ export function PaperListView({ papers, onPaperSelect }: PaperListViewProps) {
   const handleStartLearning = (e: React.MouseEvent, paper: PaperWithDomain) => {
     e.stopPropagation()
     onPaperSelect(paper)
-    router.push("/axpress/summary")
   }
 
   return (

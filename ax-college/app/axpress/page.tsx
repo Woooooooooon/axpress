@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { Header } from "@/components/Header/Header"
 import { usePaper } from "@/contexts/PaperContext"
 import { PaperCarousel } from "@/components/Axpress/PaperCarousel"
@@ -22,7 +23,8 @@ const DOWNLOAD_CACHE_PREFIX = "paper_downloaded_"
 const KEYWORD_SEARCH_CACHE_KEY = "keyword_search_data"
 
 export default function AXpressPage() {
-  const { selectedPaper, selectPaper, isDownloading, downloadError } = usePaper()
+  const router = useRouter()
+  const { selectedPaper, selectPaper, isDownloading, downloadError, summaryState } = usePaper()
   const [selectedDomain, setSelectedDomain] = useState<PaperDomain>("AI")
   const [viewMode, setViewMode] = useState<"carousel" | "list">("carousel")
   const [currentPapers, setCurrentPapers] = useState<PaperWithDomain[]>([])
@@ -216,12 +218,31 @@ export default function AXpressPage() {
     console.log(`[Keyword Cache] 키워드 검색 캐시 삭제됨`)
   }
 
+  // Summary 완료 시 자동으로 Summary 페이지로 이동
+  useEffect(() => {
+    if (!summaryState.isLoading && !summaryState.error && selectedPaper && summaryState.isLoading !== undefined) {
+      // isLoading이 false가 된 것은 API 호출이 완료되었다는 의미
+      // 초기 상태(undefined)와 구분하기 위해 체크
+      const wasLoading = sessionStorage.getItem('summary_was_loading')
+      if (wasLoading === 'true') {
+        console.log("[Main Page] Summary 완료, Summary 페이지로 이동")
+        sessionStorage.removeItem('summary_was_loading')
+        router.push("/axpress/summary")
+      }
+    }
+
+    // Summary 로딩 시작 시 표시
+    if (summaryState.isLoading) {
+      sessionStorage.setItem('summary_was_loading', 'true')
+    }
+  }, [summaryState.isLoading, summaryState.error, selectedPaper, router])
+
   const handlePaperSelect = async (paper: PaperWithDomain) => {
     try {
+      // 논문 선택 및 모든 API 병렬 호출 시작
       await selectPaper(paper)
     } catch (error) {
       console.error("[Main Page] 논문 선택 실패:", error)
-      // 에러는 PaperContext에서 관리되므로 여기서는 로그만
     }
   }
 
@@ -229,30 +250,94 @@ export default function AXpressPage() {
     <div className="min-h-screen bg-gradient-to-br from-[var(--ax-bg-soft)] to-white">
       <Header />
 
-      {/* 다운로드 중 오버레이 */}
-      {isDownloading && (
+      {/* AI 분석 중 오버레이 */}
+      {(isDownloading || summaryState.isLoading) && selectedPaper && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg p-8 max-w-md mx-4 shadow-2xl">
-            <div className="flex flex-col items-center gap-4">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--ax-accent)]"></div>
+          <div className="bg-white rounded-lg p-8 max-w-2xl mx-4 shadow-2xl">
+            <div className="flex flex-col items-center gap-6">
+              <div className="inline-block animate-spin rounded-full h-16 w-16 border-b-4 border-[var(--ax-accent)]"></div>
+
+              {/* 선택된 논문 정보 */}
               <div className="text-center">
-                <h3 className="text-xl font-semibold text-[var(--ax-fg)] mb-2">
-                  논문 다운로드 중...
+                <h3 className="text-2xl font-bold text-[var(--ax-fg)] mb-4">
+                  논문 분석 중...
                 </h3>
-                <p className="text-[var(--ax-fg)]/70 text-sm">
-                  S3에 논문을 저장하고 있습니다. 잠시만 기다려주세요.
-                </p>
-                <p className="text-[var(--ax-fg)]/50 text-xs mt-2">
-                  다운로드가 완료되어야 다른 기능을 사용할 수 있습니다.
-                </p>
+                <div className="bg-[var(--ax-bg-soft)] rounded-lg p-4 mb-4">
+                  <h4 className="text-lg font-semibold text-[var(--ax-fg)] mb-1">
+                    {selectedPaper.title}
+                  </h4>
+                  <p className="text-sm text-[var(--ax-fg)]/60">
+                    {selectedPaper.authors.join(", ")}
+                  </p>
+                </div>
               </div>
+
+              {/* 진행 상황 */}
+              <div className="w-full space-y-3">
+                <h4 className="font-semibold text-[var(--ax-fg)] text-center mb-3">
+                  AI가 논문을 분석하고 있습니다
+                </h4>
+
+                <div className="flex items-center gap-3">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                    isDownloading
+                      ? "bg-[var(--ax-accent)] animate-pulse"
+                      : "bg-green-500"
+                  }`}>
+                    {!isDownloading && (
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-[var(--ax-fg)]">논문 다운로드</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                    summaryState.isLoading
+                      ? "bg-[var(--ax-accent)] animate-pulse"
+                      : summaryState.error
+                        ? "bg-red-500"
+                        : "bg-green-500"
+                  }`}>
+                    {!summaryState.isLoading && !summaryState.error && (
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-[var(--ax-fg)]">논문 요약 생성</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 rounded-full bg-gray-300 animate-pulse"></div>
+                  <span className="text-[var(--ax-fg)]/60">퀴즈 생성 (백그라운드)</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 rounded-full bg-gray-300 animate-pulse"></div>
+                  <span className="text-[var(--ax-fg)]/60">동영상 생성 (백그라운드)</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 rounded-full bg-gray-300 animate-pulse"></div>
+                  <span className="text-[var(--ax-fg)]/60">음성 해설 생성 (백그라운드)</span>
+                </div>
+              </div>
+
+              <p className="text-sm text-[var(--ax-fg)]/50 text-center">
+                {summaryState.isLoading
+                  ? "잠시만 기다려주세요..."
+                  : "요약이 완료되면 자동으로 다음 페이지로 이동합니다"}
+              </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* 다운로드 에러 모달 */}
-      {downloadError && (
+      {/* 에러 모달 */}
+      {(downloadError || summaryState.error) && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
           <div className="bg-white rounded-lg p-8 max-w-md mx-4 shadow-2xl">
             <div className="flex flex-col items-center gap-4">
@@ -263,10 +348,10 @@ export default function AXpressPage() {
               </div>
               <div className="text-center">
                 <h3 className="text-xl font-semibold text-[var(--ax-fg)] mb-2">
-                  다운로드 실패
+                  {downloadError ? "다운로드 실패" : "요약 생성 실패"}
                 </h3>
                 <p className="text-[var(--ax-fg)]/70 text-sm mb-4">
-                  {downloadError}
+                  {downloadError || summaryState.error}
                 </p>
                 <button
                   onClick={() => window.location.reload()}
