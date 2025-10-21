@@ -109,7 +109,6 @@ export function PaperCarousel({ papers, onPaperSelect }: PaperCarouselProps) {
               onClick={(e) => {
                 e.stopPropagation()
                 handlePaperClick(paper)
-                router.push("/axpress/summary")
               }}
               className={`text-sm font-medium transition-all flex items-center gap-2 ${
                 isSelected

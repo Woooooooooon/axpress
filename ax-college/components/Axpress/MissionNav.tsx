@@ -1,7 +1,7 @@
 "use client"
 
 import { usePathname, useRouter } from "next/navigation"
-import { FileText, Brain, Headphones, History, Sparkles, CheckCircle2, Circle, Video } from "lucide-react"
+import { FileText, Brain, Headphones, Sparkles, CheckCircle2, Circle, Video } from "lucide-react"
 import { usePaper } from "@/contexts/PaperContext"
 
 interface MissionStep {

@@ -13,15 +13,12 @@ import { ChatbotFAB } from "@/components/Axpress/ChatbotFAB"
 import { ChatbotDialog } from "@/components/Axpress/ChatbotDialog"
 import { usePaper } from "@/contexts/PaperContext"
 import { useChatbot } from "@/contexts/ChatbotContext"
-import { downloadPaperFile, getSummary, type SummaryResponse } from "@/app/axpress/api"
+import { downloadPaperFile } from "@/app/axpress/api"
 
 export default function SummaryPage() {
-  const { selectedPaper, markStepComplete } = usePaper()
+  const { selectedPaper, markStepComplete, summaryData, summaryState } = usePaper()
   const { createChatbotForPaper } = useChatbot()
   const [isDownloading, setIsDownloading] = useState(false)
-  const [summaryData, setSummaryData] = useState<SummaryResponse | null>(null)
-  const [isLoadingSummary, setIsLoadingSummary] = useState(false)
-  const [summaryError, setSummaryError] = useState<string | null>(null)
 
   // 페이지 방문 시 자동 완료 처리
   useEffect(() => {
@@ -29,7 +26,7 @@ export default function SummaryPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 챗봇 생성 (다운로드 시작 시점에 함께 시작)
+  // 챗봇 생성 (페이지 진입 시)
   useEffect(() => {
     if (!selectedPaper?.research_id) return
 
@@ -38,39 +35,6 @@ export default function SummaryPage() {
       console.error("[Chatbot] 챗봇 생성 백그라운드 요청 실패:", error)
     })
   }, [selectedPaper?.research_id, createChatbotForPaper])
-
-  // AI 요약 로드
-  useEffect(() => {
-    if (!selectedPaper?.research_id) return
-
-    let cancelled = false
-
-    const loadSummary = async () => {
-      setIsLoadingSummary(true)
-      setSummaryError(null)
-      try {
-        const data = await getSummary(selectedPaper.research_id)
-        if (!cancelled) {
-          setSummaryData(data)
-        }
-      } catch (error) {
-        if (!cancelled) {
-          console.error("AI 요약 로드 실패:", error)
-          setSummaryError(error instanceof Error ? error.message : "AI 요약을 불러오는데 실패했습니다.")
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoadingSummary(false)
-        }
-      }
-    }
-
-    loadSummary()
-
-    return () => {
-      cancelled = true
-    }
-  }, [selectedPaper?.research_id])
 
   const handleDownload = async () => {
     if (!selectedPaper?.research_id) {
@@ -112,10 +76,10 @@ export default function SummaryPage() {
             </div>
 
             {/* Summary Content */}
-            <div className="ax-card p-6 md:p-8 space-y-6">
+            <div className="ax-card p-6 space-y-6">
               <div>
                 <h2 className="text-xl font-semibold text-[var(--ax-fg)] mb-4">Abstract</h2>
-                <p className="text-[var(--ax-fg)]/80 leading-relaxed whitespace-pre-line">
+                <p className="text-[var(--ax-fg)]/80 leading-relaxed ">
                   {selectedPaper?.abstract}
                 </p>
               </div>
@@ -153,11 +117,11 @@ export default function SummaryPage() {
               {/* AI Summary Section */}
               <div className="border-t border-[var(--ax-border)] pt-6">
                 <h2 className="text-xl font-semibold text-[var(--ax-fg)] mb-4">AI 요약</h2>
-                {isLoadingSummary ? (
+                {summaryState.isLoading ? (
                   <LoadingState message="AI가 논문을 분석하고 있습니다..." />
-                ) : summaryError ? (
+                ) : summaryState.error ? (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-                    <p className="text-red-600">{summaryError}</p>
+                    <p className="text-red-600">{summaryState.error}</p>
                   </div>
                 ) : summaryData ? (
                   <div className="bg-[var(--ax-bg-soft)] rounded-lg p-6">

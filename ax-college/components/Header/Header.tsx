@@ -134,7 +134,7 @@ export function Header() {
                     ref={(el) => {
                       navItemRefs.current[item.key] = el
                     }}
-                    href={item.path}
+                    href={item.key === "axpress" ? item.path : "/not-found"}
                     className={cn(
                       "ax-nav-link ax-focus-ring relative px-8 py-6 text-sm font-medium transition-colors duration-200 xl:px-3",
                       isActiveRoute(item) && "active",

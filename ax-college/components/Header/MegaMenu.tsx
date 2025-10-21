@@ -68,7 +68,7 @@ export function MegaMenu({ items, onMouseEnter, onMouseLeave, onClose, anchorEle
           {items.map((item, index) => (
             <Link
               key={item.path}
-              href={item.path}
+              href={item.path.startsWith("/axpress") ? item.path : "/not-found"}
               className={cn(
                 "ax-focus-ring block rounded-lg px-3 py-2 text-sm font-medium text-[var(--ax-fg)] transition-colors duration-200",
                 "hover:bg-[var(--ax-border)] hover:text-[var(--ax-accent)]",

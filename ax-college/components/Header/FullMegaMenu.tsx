@@ -49,7 +49,7 @@ export function FullMegaMenu({ isOpen, onMouseEnter, onMouseLeave, onClose }: Fu
                   {section.children.map((item) => (
                     <li key={item.path}>
                       <Link
-                        href={item.path}
+                        href={item.path.startsWith("/axpress") ? item.path : "/not-found"}
                         className={cn(
                           "block text-xs text-gray-600 hover:text-[var(--ax-accent)] transition-colors truncate",
                           pathname === item.path && "text-[var(--ax-accent)] font-medium",
