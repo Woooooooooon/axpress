@@ -501,7 +501,7 @@ export async function generateVideo(
   force_regenerate: boolean = false
 ): Promise<VideoGenerateResponse> {
   try {
-    console.log(`[Video Generate] research_id ${research_id} 동영상 생성 시작 (force_regenerate: ${force_regenerate})`)
+    console.log(`[Video Generate] research_id 109 동영상 생성 시작 (force_regenerate: ${force_regenerate})`)
 
     const url = `${BASE_URL}/video${force_regenerate ? "?force_regenerate=true" : ""}`
 
@@ -511,7 +511,7 @@ export async function generateVideo(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        research_id: research_id, //시연 용으로 고정
+        research_id: 109, //시연 용으로 고정
         tts_mode,
       }),
     })
@@ -521,11 +521,11 @@ export async function generateVideo(
     }
 
     const data: VideoGenerateResponse = await response.json()
-    console.log(`[Video Generate] research_id ${research_id} 동영상 생성 완료`)
+    console.log(`[Video Generate] research_id 109 동영상 생성 완료`)
 
     return data
   } catch (error) {
-    console.error(`[Video Generate Error] research_id ${research_id} 동영상 생성 실패:`, error)
+    console.error(`[Video Generate Error] research_id 109 동영상 생성 실패:`, error)
     throw error
   }
 }
@@ -535,7 +535,7 @@ export async function generateVideo(
  * GET /video/stream/{research_id}
  */
 export function getVideoStreamURL(research_id: number): string {
-  return `${BASE_URL}/video/stream/${research_id}` //시연 용으로 고정
+  return `${BASE_URL}/video/stream/109` //시연 용으로 고정
 }
 
 /**
@@ -543,7 +543,7 @@ export function getVideoStreamURL(research_id: number): string {
  * GET /video/{research_id}
  */
 export function getVideoDownloadURL(research_id: number): string {
-  return `${BASE_URL}/video/${research_id}` //시연 용으로 고정
+  return `${BASE_URL}/video/109` //시연 용으로 고정
 }
 
 /**
@@ -557,7 +557,7 @@ export async function downloadVideo(research_id: number, isFirstDownload: boolea
       ? getVideoStreamURL(research_id)
       : getVideoDownloadURL(research_id)
 
-    console.log(`[Video Download] research_id ${research_id} 다운로드 시작 (${isFirstDownload ? 'stream' : 'download'})`)
+    console.log(`[Video Download] research_id 109 다운로드 시작 (${isFirstDownload ? 'stream' : 'download'})`)
 
     const response = await fetch(url, {
       method: "GET",
@@ -572,15 +572,15 @@ export async function downloadVideo(research_id: number, isFirstDownload: boolea
     const downloadUrl = window.URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = downloadUrl
-    a.download = `research_${research_id}_lecture.mp4`
+    a.download = `109_lecture.mp4`
     document.body.appendChild(a)
     a.click()
     window.URL.revokeObjectURL(downloadUrl)
     document.body.removeChild(a)
 
-    console.log(`[Video Download] research_id ${research_id} 다운로드 완료`)
+    console.log(`[Video Download] research_id 109 다운로드 완료`)
   } catch (error) {
-    console.error(`[Video Download Error] research_id ${research_id} 다운로드 실패:`, error)
+    console.error(`[Video Download Error] research_id 109 다운로드 실패:`, error)
     throw error
   }
 }

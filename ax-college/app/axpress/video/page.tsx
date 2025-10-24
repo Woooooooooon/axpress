@@ -333,52 +333,7 @@ export default function VideoPage() {
                   </div>
                 )}
               </div>
-            </div>
-
-            {/* 재생성 버튼 (동영상이 있을 때만 표시) */}
-            {videoStatus === "ready" && (
-              <div className="ax-card p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-[var(--ax-fg)] mb-1">동영상 재생성</h3>
-                    <p className="text-sm text-[var(--ax-fg)]/70">
-                      동영상을 새로 생성하려면 재생성 버튼을 클릭하세요
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => handleGenerateVideo(true)}
-                    disabled={isGenerating}
-                    className="ax-btn-secondary flex items-center gap-2"
-                  >
-                    {isGenerating ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        생성 중...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="w-4 h-4" />
-                        동영상 재생성
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* 안내 메시지 */}
-            <div className="ax-card p-6 bg-gradient-to-r from-[var(--ax-accent)]/5 to-blue-500/5 border-2 border-[var(--ax-accent)]/20">
-              <h3 className="font-semibold text-[var(--ax-fg)] mb-2 flex items-center gap-2">
-                <VideoIcon className="w-5 h-5 text-[var(--ax-accent)]" />
-                AI 동영상 강의 안내
-              </h3>
-              <ul className="text-sm text-[var(--ax-fg)]/70 space-y-1">
-                <li>• 선택한 논문을 바탕으로 AI가 자동으로 동영상 강의를 생성합니다</li>
-                <li>• 첫 방문 시 자동으로 동영상이 생성되며, 이후에는 저장된 동영상을 불러옵니다</li>
-                <li>• 생성된 동영상은 언제든지 다시 재생하거나 다운로드할 수 있습니다</li>
-                <li>• 동영상 재생성 버튼으로 새로운 버전을 생성할 수 있습니다</li>
-              </ul>
-            </div>
+            </div>                     
           </div>
         </main>
 
